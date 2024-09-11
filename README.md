@@ -3,6 +3,8 @@
 by Dmitry Beresnev / <d.beresnev@innopolis.university>
 and Vsevolod Klyushev / <v.klyushev@innopolis.university>
 
+GroupID = 2
+
 ## Introduction
 
 TBW
