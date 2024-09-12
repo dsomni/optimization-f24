@@ -3,7 +3,7 @@
 by Dmitry Beresnev / <d.beresnev@innopolis.university>
 and Vsevolod Klyushev / <v.klyushev@innopolis.university>
 
-GroupID = 2
+**Group ID** is **2**
 
 ## Introduction
 
@@ -26,19 +26,21 @@ I also highly recommend to read report to fully understand context and purpose o
 ## Repository structure
 
 ```text
-├── data                # Data used in solution
+├── data                 # Data used in solution
 ├───── messageFromAlice.mat
 |
 ├── report
-├───── main.pdf
+├───── main.pdf          # Report in PDF format
+├───── main.tex          # Source code of the report
 │
-├── description.pdf         # Description of the project
+├── description.pdf      # Description of the project
 |
-├── pyproject.toml            # Formatter and linter settings
-├── README.md       # The top-level README
-├── requirements.txt  # The requirements file for reproducing the analysis environment
-│                      generated with `pip freeze › requirements. txt`
-├── setup_precommit.sh    # Script for creating pre-commit GitHub hook
+├── pyproject.toml       # Formatter and linter settings
+├── README.md            # The top-level README
+├── requirements.txt     # The requirements file generated with
+│                           `pip freeze › requirements. txt`
+|
+├── setup_precommit.sh   # Script for creating pre-commit GitHub hook
 |
 |
 └── solution.ipynb       #  The main jupiter notebook with solution
@@ -52,7 +54,7 @@ For all scripts help messages are available with `-h` flag. For example, `python
 Generally, for all scripts two modes are available: verbose and non-verbose.
 By default verbose mode is active, and to run the script in silent mode you need the `--no-verbose` flag. -->
 
-Generally, you can run each script with no flags at all. However, I **highly recommend** to always read the help messages before using scripts.
+TBW
 
 <!-- `./benchmark/evaluate.py` script is used for model performance evaluation.
 You can specify model (by path) and data (also by path) for evaluation. Note, that by default script interprets data path

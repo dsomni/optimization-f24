@@ -16,10 +16,15 @@
 \usepackage{doi}
 
 \usepackage{amsmath}
+\usepackage{nicematrix}
+\usepackage{nicematrix}
 \usepackage{cleveref}
 
 
+\NiceMatrixOptions{cell-space-top-limit=5pt,cell-space-bottom-limit=5pt,columns-width=20pt}
+
 \def\R{\mathbb{R}}
+\def\xt{\tilde{x}}
 
 
 
@@ -39,9 +44,11 @@
 }
 
 \renewcommand{\undertitle}{\textbf{Group 2} Report for Optimization F24 course}
+\renewcommand{\headeright}{}
 
 \begin{document}
 \maketitle
+
 
 \section{Introduction}
 Initial problem is formulated as following:
@@ -55,11 +62,124 @@ where $A \in \R^{m \times p}$ with $m \geq p$ --- message  encoding matrix,
 $y'$ --- received encoded (noisy) message,
 $x'$ --- encoded initial message to be find.
 
-\section{Q1: Linear problem formulation}
-Initial problem \cref{eq:init} is not linear as cost function
-$ {\| Ax'-y' \|}_1 = \sum_{i=1}^{m} |{(Ax')}_i-y'_i|$,
-where ${( \cdot )}_i$ --- i-th component of vector, is not linear. However, this objective function is piecewise linear convex function. Therefore
+\section{Notations}
 
+ {
+  \renewcommand{\arraystretch}{1.5}
+  \renewcommand{\tabcolsep}{10pt}
+  \begin{table}[h]
+    \centering
+    \begin{tabular}{cc}
+      \toprule
+      \textbf{Notation}                          & \textbf{Meaning}                                     \\
+      \midrule
+      $e_i$                                      & unit vector with 1 at index $i$ and all other zeroes \\
+      $1_n$                                      & vector of $n$ ones                                   \\
+      $I_n$                                      & identity matrix of size $n \times n$                 \\
+      $0_n$                                      & vector of $n$ zeroes                                 \\
+      $0_{m \times n}$                           & zero matrix of size $m \times n$                     \\
+      $x_i$ $\left( \text{or } {(Ax)}_i \right)$ & $i$-th component of vector $x$    (or $Ax$)          \\
+
+      \bottomrule
+    \end{tabular}
+  \end{table}
+ }
+
+
+\section{Q1: Linear problem formulation}
+Initial problem (\cref{eq:init}) is not linear as cost function
+$ {\| Ax'-y' \|}_1 = \sum_{i=1}^{m} |{(Ax')}_i-y'_i|$, is not linear. However, this objective function is \textbf{piecewise linear convex} function. Therefore, each element $|{(Ax')}_i-y'_i| = \max({(Ax')}_i-y'_i, y'_i -{(Ax')}_i)$ can be substituted with new variable $z'$ with the following additional
+constraints: $z_i \geq {(Ax')}_i-y'_i$ and $z_i \geq y'_i-{(Ax')}_i$.
+
+So the following problem is \textbf{linear} and is equivalent to the initial one:
+\begin{equation}\label{eq:linear}
+  \begin{aligned}
+                 & \min\limits_{x' \in \R^p, z \in \R^m} \sum_{i=1}^{m} z_i \\
+    \text{s.t. } & x' \geq 0                                                \\
+                 & x' \leq 1                                                \\
+                 & z_i \geq {(Ax')}_i-y'_i, \ i = 1 \dots m                 \\
+                 & z_i \geq y'_i-{(Ax')}_i, \ i = 1 \dots m                 \\
+  \end{aligned}
+\end{equation}
+
+\section{Q2: Linear problem in standard form}
+
+For the easier and more evident deviation of standard form of \Cref{eq:linear},
+linear problem will be firstly rewritten in geometric form, and only then --- in standard. The obtained linear optimization problem in standard form will be equivalent to initial problem (\cref{eq:init}).
+
+\subsection{Geometric form}
+The equivalent \textbf{geometric} form of \Cref{eq:linear} is
+\begin{equation}\label{eq:geom}
+  \begin{aligned}
+                 & \min\limits_{z' \in \R^{p+m}} c^T z' \\
+    \text{s.t. } &
+    \begin{pNiceArray}{c:c}
+      I_p  & 0_{p \times m}  \\
+      \hdottedline
+      -I_p  & 0_{p \times m}  \\
+      \hdottedline
+      -A & I_m \\
+      \hdottedline
+      A & I_m \\
+      \CodeAfter
+      \UnderBrace[yshift=1.5mm,color=blue]{last-1}{last-last}{A'}
+    \end{pNiceArray}
+    z' \geq
+    \begin{pNiceMatrix}
+      0_p  \\
+      -1_p \\
+      -y'  \\
+      y'   \\
+      \CodeAfter
+      \UnderBrace[yshift=1.5mm,color=blue]{last-1}{last-last}{b'}
+    \end{pNiceMatrix},
+  \end{aligned}
+  \vspace{20pt}
+\end{equation}
+where
+$c = \sum_{i=p+1}^{p+m} e_i \in \R^{(p+m)}$,
+$b' \in \R^{2p+2m}$ and
+$A'\in \R^{(2p+2m) \times (p+m)}$.
+
+The first $p$ components of $z'$ correspond to the components of $x'$, and the next $m$ components correspond to the components of $z$ from \Cref{eq:linear}. Rows and columns of $A'$ representation in \Cref{eq:geom} are separated in blocks for clarity: the vertical separation is for $x'$ and $z$ correspondingly, and the horizontal separations denote corresponding constraints from \Cref{eq:linear}.
+
+\subsection{Standard form}
+
+Note that $z' = {(x', z)}^T$ from \Cref{eq:geom} is already non-negative, because $x' \geq 0$ by problem definition and $z \geq 0 $ by construction\footnote{Intuitively, $z$ substitutes the absolute value, so is non-negative. Formally, from \Cref{eq:linear}, $z \geq t$ and $z \geq -t$ for some $t$. So if $t \geq 0$, then $z \geq t \geq 0$, and if $t \leq 0$ then $z \geq -t \geq 0$ }. Therefore, to convert \Cref{eq:geom} to standard form, only introduction of slack variables is needed to get rid of inequality sign. The equivalent \textbf{standard} form of \Cref{eq:geom} is
+\begin{equation}\label{eq:std}
+  \begin{aligned}
+                 & \min\limits_{\xt \in \R^{2p+3m}} c^T \xt    \\
+    \text{s.t. } &
+    \begin{pNiceArray}{c:c:c}
+      -I_p  & 0_{p \times m} & -S^{1,p}  \\
+      \hdottedline
+      -A & I_m & -S^{p+1,p+m} \\
+      \hdottedline
+      A & I_m & -S^{p+m+1,p+2m}\\
+      \CodeAfter
+      \UnderBrace[yshift=1.5mm,color=blue]{last-1}{last-last}{A'}
+    \end{pNiceArray}
+    z' =
+    \begin{pNiceMatrix}
+      -1_p \\
+      -y'  \\
+      y'   \\
+      \CodeAfter
+      \UnderBrace[yshift=1.5mm,color=blue]{last-1}{last-last}{b'}
+    \end{pNiceMatrix}, \\
+    \vspace{20pt}                                              \\
+                 & \xt \geq 0,
+  \end{aligned}
+  \vspace{20pt}
+\end{equation}
+where
+$c = \sum_{i=p+1}^{p+m} e_i \in \R^{(2p+3m)}$,
+$b' \in \R^{p+2m}$,
+$A'\in \R^{(p+2m) \times (2p+3m)}$, and
+$S^{a,b}$ --- slack variable matrix of size $(b-a+1) \times (p+2m)$
+with rows $S^{a,b}_i = e_{a+i-1}$, which represents necessary slack variables.
+
+The first $p$ components of $\xt$ correspond to the components of $x'$, the next $m$ components correspond to the components of $z$ from \Cref{eq:linear} and the last $(p+2m)$ components correspond to slack variables $s$. Rows and columns of $A'$ representation in \Cref{eq:std} are again separated in blocks for clarity: the vertical separations are for $x'$, $z$ and $s$ correspondingly, and the horizontal separations are related to corresponding constraints from \Cref{eq:geom} (except first one, as non-negativity in standard from is separate constraint).
 
 
 \end{document}
