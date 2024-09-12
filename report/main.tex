@@ -1,0 +1,65 @@
+\documentclass{article}
+
+
+\usepackage{arxiv}
+
+\usepackage[utf8]{inputenc} % allow utf-8 input
+\usepackage[T1]{fontenc}    % use 8-bit T1 fonts
+\usepackage{hyperref}       % hyperlinks
+\usepackage{url}            % simple URL typesetting
+\usepackage{booktabs}       % professional-quality tables
+\usepackage{amsfonts}       % blackboard math symbols
+\usepackage{nicefrac}       % compact symbols for 1/2, etc.
+\usepackage{microtype}      % microtypography
+\usepackage{graphicx}
+\usepackage{natbib}
+\usepackage{doi}
+
+\usepackage{amsmath}
+\usepackage{cleveref}
+
+
+\def\R{\mathbb{R}}
+
+
+
+\title{Linear programming project}
+
+%\date{September 9, 1985}	% Here you can change the date presented in the paper title
+\date{} 					% Or removing it
+
+\author{
+  \hspace{1mm}Dmitry Beresnev \\
+	MS-DS1, Innopolis University\\
+	\texttt{d.beresnev@innopolis.university} \\
+	\And{}
+  \hspace{1mm}Vsevolod Klyushev \\
+	MS-DS1, Innopolis University\\
+	\texttt{v.klyushev@innopolis.university}
+}
+
+\renewcommand{\undertitle}{\textbf{Group 2} Report for Optimization F24 course}
+
+\begin{document}
+\maketitle
+
+\section{Introduction}
+Initial problem is formulated as following:
+\begin{equation}\label{eq:init}
+  \begin{aligned}
+                 & \min\limits_{x' \in \R^p} {\| Ax'-y' \|}_1 \\
+    \text{s.t. } & 0 \leq x' \leq 1
+  \end{aligned}
+\end{equation}
+where $A \in \R^{m \times p}$ with $m \geq p$ --- message  encoding matrix,
+$y'$ --- received encoded (noisy) message,
+$x'$ --- encoded initial message to be find.
+
+\section{Q1: Linear problem formulation}
+Initial problem \cref{eq:init} is not linear as cost function
+$ {\| Ax'-y' \|}_1 = \sum_{i=1}^{m} |{(Ax')}_i-y'_i|$,
+where ${( \cdot )}_i$ --- i-th component of vector, is not linear. However, this objective function is piecewise linear convex function. Therefore
+
+
+
+\end{document}
