@@ -19,13 +19,44 @@
 \usepackage{nicematrix}
 \usepackage{nicematrix}
 \usepackage{cleveref}
+\usepackage{listings}
 
 
 \NiceMatrixOptions{cell-space-top-limit=5pt,cell-space-bottom-limit=5pt,columns-width=20pt}
 
+\crefname{lstlisting}{listing}{listings}
+\Crefname{lstlisting}{Listing}{Listings}
+
+
+% Listing options
+\definecolor{codegreen}{rgb}{0,0.6,0}
+\definecolor{codegray}{rgb}{0.5,0.5,0.5}
+\definecolor{codepurple}{rgb}{0.58,0,0.82}
+\definecolor{backcolour}{rgb}{0.95,0.95,0.92}
+
+\lstdefinestyle{python_style}{
+    backgroundcolor=\color{backcolour},
+    commentstyle=\color{codegreen},
+    keywordstyle=\color{magenta},
+    numberstyle=\tiny\color{codegray},
+    stringstyle=\color{codepurple},
+    basicstyle=\ttfamily\footnotesize,
+    breakatwhitespace=false,
+    breaklines=true,
+    captionpos=b,
+    keepspaces=true,
+    numbers=left,
+    numbersep=5pt,
+    showspaces=false,
+    showstringspaces=false,
+    showtabs=false,
+    tabsize=2
+}
+\lstset{style=python_style}
+
+
 \def\R{\mathbb{R}}
 \def\xt{\tilde{x}}
-
 
 
 \title{Linear programming project}
@@ -107,7 +138,8 @@ So the following problem is \textbf{linear} and is equivalent to the initial one
 For the easier and more evident deviation of standard form of \Cref{eq:linear},
 linear problem will be firstly rewritten in geometric form, and only then --- in standard. The obtained linear optimization problem in standard form will be equivalent to initial problem (\cref{eq:init}).
 
-\subsection{Geometric form}
+\subsection{Geometric form}\label{sec:geom}
+
 The equivalent \textbf{geometric} form of \Cref{eq:linear} is
 \begin{equation}\label{eq:geom}
   \begin{aligned}
@@ -143,7 +175,7 @@ $A'\in \R^{(2p+2m) \times (p+m)}$.
 
 The first $p$ components of $z'$ correspond to the components of $x'$, and the next $m$ components correspond to the components of $z$ from \Cref{eq:linear}. Rows and columns of $A'$ representation in \Cref{eq:geom} are separated in blocks for clarity: the vertical separation is for $x'$ and $z$ correspondingly, and the horizontal separations denote corresponding constraints from \Cref{eq:linear}.
 
-\subsection{Standard form}
+\subsection{Standard form}\label{sec:std}
 
 Note that $z' = {(x', z)}^T$ from \Cref{eq:geom} is already non-negative, because $x' \geq 0$ by problem definition and $z \geq 0 $ by construction\footnote{Intuitively, $z$ substitutes the absolute value, so is non-negative. Formally, from \Cref{eq:linear}, $z \geq t$ and $z \geq -t$ for some $t$. So if $t \geq 0$, then $z \geq t \geq 0$, and if $t \leq 0$ then $z \geq -t \geq 0$ }. Therefore, to convert \Cref{eq:geom} to standard form, only introduction of slack variables is needed to get rid of inequality sign. The equivalent \textbf{standard} form of \Cref{eq:geom} is
 \begin{equation}\label{eq:std}
@@ -180,6 +212,130 @@ $S^{a,b}$ --- slack variable matrix of size $(b-a+1) \times (p+2m)$
 with rows $S^{a,b}_i = e_{a+i-1}$, which represents necessary slack variables.
 
 The first $p$ components of $\xt$ correspond to the components of $x'$, the next $m$ components correspond to the components of $z$ from \Cref{eq:linear} and the last $(p+2m)$ components correspond to slack variables $s$. Rows and columns of $A'$ representation in \Cref{eq:std} are again separated in blocks for clarity: the vertical separations are for $x'$, $z$ and $s$ correspondingly, and the horizontal separations are related to corresponding constraints from \Cref{eq:geom} (except first one, as non-negativity in standard from is separate constraint).
+
+% Hereafter, if other is not mentioned, the mentions of $c$, $A'$ and $b'$ are referred to the \Cref{eq:std}.
+
+\section{Q3: Message decryption}
+
+In the sake of research interest, the message decrypted by solving three different problems: least squares (assuming no noise at all), linear optimization program (LOP) in geometric form and linear optimization problem in standard form.
+
+\subsection{Least Squares}
+As it is previously mentioned, this approach is quite naive as assumes no noise in received signal $y'$. The function \textit{scipy.linalg.lstsq} is used, so the encoded message is found as a solution to the problem $\min\limits_{x' \in \R^p} {\| Ax'-y' \|}_2$. The resulting function is demonstrated on \Cref{lst:naive}.
+
+\begin{lstlisting}[language=Python, caption={Naive message decryption}, label={lst:naive}]
+  def extract_message_naive(encoding_matrix, noisy_signal):
+    res, *_ = scipy.linalg.lstsq(a=encoding_matrix,b=noisy_signal)
+    return res
+\end{lstlisting}
+
+
+\subsection{LOP in geometric form}
+In this case, the encoded message is found as a solution to the problem \Cref{eq:geom} using the function \textit{scipy.linalg.linprog}. The resulting function is demonstrated on \Cref{lst:geom}. As one can notice, the construction of $A$ and $b$ completely reflects representations of $A'$ and $b'$ from \Cref{eq:geom}. Also, as was mentioned in \Cref{sec:geom}, we are interested only in the first $p$ components of the solution.
+
+\begin{lstlisting}[language=Python, caption={Message decryption based on solution of LOP in geometric form}, label={lst:geom}]
+  def extract_message_geometric(encoding_matrix, noisy_signal):
+
+    # Size of A
+    (m, p) = encoding_matrix.shape
+
+    c = np.zeros(p+m)
+    c[p : p + m] = np.ones(m)
+
+    b = np.concat([np.zeros(p), -np.ones(p), -noisy_signal, noisy_signal])
+
+    A = np.concat(
+        [
+            np.concat([np.identity(p), np.zeros((p, m))], axis=1),
+            np.concat([-np.identity(p), np.zeros((p, m))], axis=1),
+            np.concat([-encoding_matrix, np.identity(m)], axis=1),
+            np.concat([encoding_matrix, np.identity(m)], axis=1),
+        ]
+    )
+
+    # We add minuses, because from scipy documentation
+    # A_ub x <= b_ub
+    # But in geometric from we have constraints
+    # A_ub x >= b_ub
+    res = scipy.linalg.linprog(c, A_ub=-A, b_ub=-b, method="highs")
+
+    return res.x[:p]
+\end{lstlisting}
+
+
+\subsection{LOP in standard form}
+The encoded message is found as a solution to the problem \Cref{eq:std} using the function \textit{scipy.linalg.linprog}. The resulting function is demonstrated on \Cref{lst:std}. As one can notice, the construction of $A$ and $b$ completely reflects representations of $A'$ and $b'$ from \Cref{eq:std}.
+Moreover, the separate function \textit{build\_slack} to construct slack matrices $S^{a,b}$ (\cref{eq:std}) is introduced.
+Also, as was mentioned in \Cref{sec:std}, we are interested only in the first $p$ components of the solution.
+
+\begin{minipage}{\linewidth}
+  \begin{lstlisting}[language=Python, caption={Message decryption based on solution of LOP in standard form}, label={lst:std}]
+  def build_slack(a, b, p, m):
+    slack_matrix = np.zeros((b - a + 1, p + 2 * m))
+    for i in range(b - a + 1):
+        slack_matrix[i][a + i - 1] = 1
+    return slack_matrix
+
+
+  def extract_message_standard(encoding_matrix, noisy_signal):
+
+    # Size of A
+    (m, p) = encoding_matrix.shape
+
+    c = np.zeros(2 * p + 3 * m)
+    c[p : p + m] = np.ones(m)
+
+    b = np.concat([-np.ones(p), -noisy_signal, noisy_signal])
+
+    A = np.concat(
+        [
+            np.concat(
+                [-np.identity(p), np.zeros((p, m)), -build_slack(1, p, p, m)], axis=1
+            ),
+            np.concat(
+                [-encoding_matrix, np.identity(m), -build_slack(p + 1, p + m, p, m)],
+                axis=1,
+            ),
+            np.concat(
+                [
+                    encoding_matrix,
+                    np.identity(m),
+                    -build_slack(p + m + 1, p + 2 * m, p, m),
+                ],
+                axis=1,
+            ),
+        ]
+    )
+
+    res = scipy.linalg.linprog(c, A_eq=A, b_eq=b, method="highs")
+
+    return res.x[:p]
+\end{lstlisting}
+\end{minipage}
+
+\subsection{Results}
+As expected, result of naive solution is a total mess, while the solution of LOP of both forms led in meaningful message:
+
+\begin{equation*}
+  \begin{aligned}
+    \textbf{You can claim your personal reward by going to Student affairs, giving you code=1083 and ask for you reward}
+  \end{aligned}
+\end{equation*}
+
+Also note that computation time of standard LOP (334 seconds) is 14\% greater than of geometric LOP (293 seconds)\footnote{Possible explanation is that standard LOP has bigger dimension of target vector than geometric LOP. Namely, as in given case $m=856, p=4m$, $\xt$ from \Cref{eq:std} is from $\R^{11m} = \R^{9416}$ while $z'$ from \Cref{eq:geom} is only from $\R^{5m} = \R^{4200}$.
+}.
+
+
+\section{Q4: Check is the obtained solution a polyhedron vertex}
+\ldots
+
+\section{Q5: Custom message experiments}
+\ldots
+
+\section{Q6: Dikin's method}
+\ldots
+
+\section{Q7: Binary variables}
+\ldots
 
 
 \end{document}
