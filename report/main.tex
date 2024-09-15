@@ -55,6 +55,11 @@
 \lstset{style=python_style}
 
 
+\newcommand{\irow}[1]{% inline row vector
+  {\begin{smallmatrix}(\,#1\,)\end{smallmatrix}}^T
+}
+
+
 \def\R{\mathbb{R}}
 \def\xt{\tilde{x}}
 
@@ -230,7 +235,7 @@ As it is previously mentioned, this approach is quite naive as assumes no noise 
 
 
 \subsection{LOP in geometric form}
-In this case, the encoded message is found as a solution to the problem \Cref{eq:geom} using the function \textit{scipy.linalg.linprog}. The resulting function is demonstrated on \Cref{lst:geom}. As one can notice, the construction of $A$ and $b$ completely reflects representations of $A'$ and $b'$ from \Cref{eq:geom}. Also, as was mentioned in \Cref{sec:geom}, we are interested only in the first $p$ components of the solution.
+In this case, the encoded message is found as a solution to the problem \Cref{eq:geom} using the function \textit{scipy.optimize.linprog}. The resulting function is demonstrated on \Cref{lst:geom}. As one can notice, the construction of $A$ and $b$ completely reflects representations of $A'$ and $b'$ from \Cref{eq:geom}. Also, as was mentioned in \Cref{sec:geom}, we are interested only in the first $p$ components of the solution.
 
 \begin{lstlisting}[language=Python, caption={Message decryption based on solution of LOP in geometric form. The output is tuple of solution of the problem, and decrypted message itself}, label={lst:geom}]
   def extract_message_geometric(encoding_matrix, noisy_signal):
@@ -256,14 +261,14 @@ In this case, the encoded message is found as a solution to the problem \Cref{eq
     # A_ub x <= b_ub
     # But in geometric from we have constraints
     # A_ub x >= b_ub
-    res = scipy.linalg.linprog(c, A_ub=-A, b_ub=-b, method="highs")
+    res = scipy.optimize.linprog(c, A_ub=-A, b_ub=-b, method="highs")
 
     return res.x, res.x[:p]
 \end{lstlisting}
 
 
 \subsection{LOP in standard form}
-The encoded message is found as a solution to the problem \Cref{eq:std} using the function \textit{scipy.linalg.linprog}. The resulting function is demonstrated on \Cref{lst:std}. As one can notice, the construction of $A$ and $b$ completely reflects representations of $A'$ and $b'$ from \Cref{eq:std}.
+The encoded message is found as a solution to the problem \Cref{eq:std} using the function \textit{scipy.optimize.linprog}. The resulting function is demonstrated on \Cref{lst:std}. As one can notice, the construction of $A$ and $b$ completely reflects representations of $A'$ and $b'$ from \Cref{eq:std}.
 Moreover, the separate function \textit{build\_slack} to construct slack matrices $S^{a,b}$ (\cref{eq:std}) is introduced.
 Also, as was mentioned in \Cref{sec:std}, we are interested only in the first $p$ components of the solution.
 
@@ -306,7 +311,7 @@ Also, as was mentioned in \Cref{sec:std}, we are interested only in the first $p
         ]
     )
 
-    res = scipy.linalg.linprog(c, A_eq=A, b_eq=b, method="highs")
+    res = scipy.optimize.linprog(c, A_eq=A, b_eq=b, method="highs")
 
     return res.x, res.x[:p]
 \end{lstlisting}
@@ -358,7 +363,8 @@ The results (\Cref{fig:noise}) are not surprising. The bigger signal dimension f
   \centering
   \pgfplotsset{compat=1.10}
   \begin{tikzpicture}
-    \begin{axis}[legend style={at={(0.5,-0.2)},
+    \begin{axis}[
+        legend style={at={(0.5,-0.2)},
             anchor=north,legend columns=-1},
         xlabel = Signal dimension factor $k$,
         ylabel = Maximum percent of noise,
@@ -384,6 +390,82 @@ The results (\Cref{fig:noise}) are not surprising. The bigger signal dimension f
 \ldots
 
 \section{Q7: Integer programming}
-\ldots
+Imposing binary (integer) variables SciPy is done via adding parameter \textit{integrality} to function \textit{scipy.optimize.linprog}. Specifically, \textit{integrality} determines for each variable whether it is integer or continuous: 0 means that parameter is continuous, 1 --- integer.
+
+Let us for this section consider LOP in geometric form (\Cref{eq:geom}), as it is solved faster than LOP in standard form. So the integrality for $z'$ would be $w = \irow{1_p & 0_m}$, as only part of $z'$ denoting the $x$ should be restricted to be integers. Moreover, first two `row blocks' of $A'$ can be removed, and instead the \textit{bounds} parameter of \textit{scipy.optimize.linprog} can be used. The bounds would be $(0,1)$ for first $p$ coordinates of $z'$ (as $0 \leq x \leq 1$) and $(0, +\inf)$ for the last m coordinates (as $z \geq 0$). The resulting function is demonstrated on \Cref{lst:int}.
+
+\begin{minipage}{\linewidth}
+  \begin{lstlisting}[language=Python, caption={Message decryption based on solution of integer LOP in geometric form. The output is tuple of solution of the problem, and decrypted message itself}, label={lst:int}]
+  def extract_message_integer(encoding_matrix, noisy_signal):
+
+      (m, p) = encoding_matrix.shape
+
+      c = np.zeros(p+m)
+      c[p : p + m] = np.ones(m)
+
+      integrality = np.ones(p+m) - c
+      bounds = [*[(0,1) for _ in range(p)], *[(0,None) for _ in range(m)]]
+
+      b = np.concat([ -noisy_signal, noisy_signal])
+
+      A = np.concat(
+          [
+              np.concat(
+                  [-encoding_matrix, np.identity(m)],
+                  axis=1,
+              ),
+              np.concat(
+                  [
+                      encoding_matrix,
+                      np.identity(m),
+                  ],
+                  axis=1,
+              ),
+          ]
+      )
+
+      # We add minuses, because from scipy documentation
+      # A_ub x <= b_ub
+      # But in geometric from we have constraints
+      # A_ub x >= b_ub
+      res = scipy.optimize.linprog(c, A_ub=-A, b_ub=-b,
+                                   method="highs", integrality=integrality, bounds=bounds)
+
+      return res.x, res.x[:p]
+\end{lstlisting}
+\end{minipage}
+
+
+The results (\Cref{fig:noise_int}) show, that introducing integer restrictions increases the maximum percent of noise up to what the messages can be decrypted. However, time complexity of optimization problem with integer constraints is \textbf{significantly higher} (up to 10 times) than without integer constraints.
+
+
+\begin{figure}[hbt]
+  \centering
+  \pgfplotsset{compat=1.10}
+  \begin{tikzpicture}
+    \begin{axis}[
+        ybar,
+        enlargelimits=0.25,
+        legend style={at={(0.5,-0.2)},
+            anchor=north,legend columns=-1},
+        ylabel = Maximum percent of noise,
+        ybar=6pt,
+        symbolic x coords={LOP,Integer LOP},
+        xtick=data,
+        nodes near coords,
+        nodes near coords align={vertical},
+        legend style={/tikz/every even column/.append style={column sep=0.5cm}}]
+      \addplot coordinates {(LOP, 0.34) (Integer LOP, 0.52)};
+      \addplot coordinates {(LOP, 0.24) (Integer LOP, 0.1)};
+      \addplot coordinates {(LOP, 0.34) (Integer LOP, 0.1)};
+
+      \legend{hello!,Custom message,Quite long phrase <3<3}
+    \end{axis}
+  \end{tikzpicture}
+  \caption[Maximum level of noise up to what the messages can be decrypted (signal dimension factor $k=2$)]
+  {Maximum level of noise up to what the messages can be decrypted (signal dimension factor $k=2$).
+    \textit{LOP} means that no integer constraints were applied to the parameters vector, and  \textit{Integer LOP} means that integer programming was applied}\label{fig:noise_int}
+\end{figure}
+
 
 \end{document}
