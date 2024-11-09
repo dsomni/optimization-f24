@@ -13,11 +13,12 @@ TBW
 
 Code was tested on Windows 11, Python 3.12
 
-All the requirement packages are listed in the file `requirements.txt`
+All the requirement packages are listed in the file `pyproject.toml`
 
 ## Before start
 
-Install all the packages from _requirements.txt_ using `pip install -r requirements.txt`
+I recommend using [uv](https://docs.astral.sh/uv/) for project setup and management.
+You can start with `uv sync`.
 
 Optionally, you can run `bash setup_precommit.sh` to setup pre-commit hook for GitHub for code formatting using [ruff](https://docs.astral.sh/ruff/).
 
