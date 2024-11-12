@@ -16,7 +16,7 @@ dependencies = [
 [tool.ruff]
 extend-include = ["*.ipynb"]
 fix=true
-line-length = 90
+line-length = 100
 
 # Assume Python 3.12
 target-version = "py312"
